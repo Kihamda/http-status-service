@@ -1,6 +1,7 @@
 const {
-  COPY,
+  backLabel,
   escapeHtml,
+  invalidDescription,
   parseStatusCode,
   resolveLanguage,
   statusDescription,
@@ -47,6 +48,7 @@ function htmlDocument(payload) {
   <center>
     <h1>${payload.status} ${escapeHtml(payload.message)}</h1>
     <p>${escapeHtml(payload.description)}</p>
+    <p><a href="/?lang=${escapeHtml(payload.language)}">${escapeHtml(backLabel(payload.language))}</a></p>
     <hr>
     <a href="https://kihamda.net/">Kihamda.net</a>
   </center>
@@ -57,7 +59,8 @@ function htmlDocument(payload) {
 function errorPayload(language) {
   return {
     status: 400,
-    message: COPY[language].invalid
+    message: 'Bad Request',
+    description: invalidDescription(language)
   };
 }
 
@@ -80,7 +83,12 @@ module.exports = function handler(req, res) {
     res.setHeader('Allow', 'GET, HEAD, OPTIONS');
     res.statusCode = 405;
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.end(method === 'HEAD' ? undefined : JSON.stringify({ error: 'method_not_allowed' }));
+    const payload = {
+      status: 405,
+      message: statusText(405),
+      description: statusDescription(405, language)
+    };
+    res.end(method === 'HEAD' ? undefined : JSON.stringify(payload));
     return;
   }
 
@@ -96,7 +104,7 @@ module.exports = function handler(req, res) {
   if (informational) emitInformationalResponse(res, code);
   const payload = {
     status: code,
-    message: statusText(code, language),
+    message: statusText(code),
     description: statusDescription(code, language),
     language,
     finalStatus: informational ? 200 : code
@@ -118,6 +126,10 @@ module.exports = function handler(req, res) {
   }
 
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.end(JSON.stringify({ status: payload.status, message: payload.message }));
+  res.end(JSON.stringify({
+    status: payload.status,
+    message: payload.message,
+    description: payload.description
+  }));
 };
 
