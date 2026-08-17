@@ -1,0 +1,14 @@
+{
+  "name": "http-status-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A RESTful HTTP status response service for Vercel.",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
+
