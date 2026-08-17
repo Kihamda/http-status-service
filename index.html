@@ -5,64 +5,224 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Return any valid HTTP status code as HTML or JSON.">
   <title>HTTP Status Service</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #263238;
+      background: #f3f5f6;
+      font-synthesis: none;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; line-height: 1.65; }
+    a { color: #17675f; }
+    a:hover { color: #0d4540; }
+
+    .site-header {
+      border-top: 4px solid #287a70;
+      border-bottom: 1px solid #d7dfe1;
+      background: #fff;
+    }
+
+    .site-header div,
+    main,
+    footer {
+      width: min(940px, calc(100% - 32px));
+      margin-inline: auto;
+    }
+
+    .site-header div {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 16px 0;
+    }
+
+    .brand { margin: 0; font-size: 1.25rem; color: #1d4f4a; }
+    .tagline { margin: 0; color: #68777b; font-size: .9rem; }
+    main { padding: 38px 0 48px; }
+
+    .intro { margin-bottom: 28px; }
+    .intro h1 { margin: 0 0 8px; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.2; }
+    .intro p { max-width: 650px; margin: 0; color: #56666a; }
+
+    .panel {
+      margin: 0 0 22px;
+      overflow: hidden;
+      border: 1px solid #ccd7d9;
+      border-radius: 5px;
+      background: #fff;
+    }
+
+    .panel h2 {
+      margin: 0;
+      padding: 10px 15px;
+      border-bottom: 1px solid #b9cecb;
+      background: #e5f0ee;
+      color: #245b55;
+      font-size: 1.05rem;
+    }
+
+    .panel-body { padding: 18px; }
+    .panel-body > :first-child { margin-top: 0; }
+    .panel-body > :last-child { margin-bottom: 0; }
+
+    form {
+      display: grid;
+      grid-template-columns: minmax(150px, 1fr) minmax(130px, .7fr) minmax(190px, 1fr) auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    label { display: grid; gap: 5px; color: #46575a; font-size: .9rem; font-weight: 600; }
+    input, select, button {
+      min-height: 42px;
+      border: 1px solid #aebdc0;
+      border-radius: 4px;
+      background: #fff;
+      color: #263238;
+      padding: 8px 10px;
+      font: inherit;
+    }
+
+    input:focus, select:focus { outline: 2px solid #8bc5bd; outline-offset: 1px; }
+    button { border-color: #287a70; background: #287a70; color: #fff; font-weight: 700; cursor: pointer; }
+    button:hover { background: #20645c; }
+
+    .route-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .route-grid article { padding: 14px; border: 1px solid #d8e0e2; border-radius: 4px; background: #fafbfb; }
+    .route-grid h3 { margin: 0 0 8px; color: #32474a; font-size: 1rem; }
+    .route-grid p { margin: 8px 0 0; color: #637275; font-size: .92rem; }
+
+    code, pre { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+    code { color: #145d55; }
+    pre {
+      overflow-x: auto;
+      margin: 12px 0;
+      padding: 13px;
+      border-left: 4px solid #6da89f;
+      background: #f1f6f5;
+      color: #304441;
+      line-height: 1.5;
+    }
+
+    ul { padding-left: 1.3rem; }
+    li + li { margin-top: 5px; }
+    .muted { color: #68777b; font-size: .92rem; }
+
+    footer {
+      padding: 20px 0 32px;
+      border-top: 1px solid #d7dfe1;
+      color: #6c797c;
+      font-size: .88rem;
+    }
+
+    @media (max-width: 760px) {
+      .site-header div { display: block; }
+      .tagline { margin-top: 3px; }
+      form { grid-template-columns: 1fr 1fr; }
+      form label:first-child { grid-column: 1 / -1; }
+      button { align-self: stretch; }
+    }
+
+    @media (max-width: 520px) {
+      form, .route-grid { grid-template-columns: 1fr; }
+      form label:first-child { grid-column: auto; }
+    }
+  </style>
 </head>
 <body>
+  <header class="site-header">
+    <div>
+      <p class="brand"><strong>HTTP Status Service</strong></p>
+      <p class="tagline">Simple status responses for testing and development</p>
+    </div>
+  </header>
+
   <main>
-    <h1>HTTP Status Service</h1>
-    <p>Returns an HTTP status response as plain HTML or JSON.</p>
+    <section class="intro">
+      <h1>Return the status you need.</h1>
+      <p>Choose any HTTP status code from 100 through 599 and receive it as a small HTML page or a JSON response.</p>
+    </section>
 
-    <h2>Try it</h2>
-    <form id="request-form">
-      <label>Status code <input id="status-code" inputmode="numeric" pattern="[1-5][0-9]{2}" value="404" required></label>
-      <label>Format <select id="format"><option value="html">HTML</option><option value="json">JSON</option></select></label>
-      <label>Language
-        <select id="language">
-          <option value="en">English</option>
-          <option value="ja">日本語</option>
-          <option value="de">Deutsch</option>
-          <option value="es">Español</option>
-          <option value="fr">Français</option>
-          <option value="ko">한국어</option>
-          <option value="pt-BR">Português (Brasil)</option>
-          <option value="zh-CN">简体中文</option>
-        </select>
-      </label>
-      <button type="submit">Open response</button>
-    </form>
+    <section class="panel">
+      <h2>Try a response</h2>
+      <div class="panel-body">
+        <form id="request-form">
+          <label>Status code <input id="status-code" inputmode="numeric" pattern="[1-5][0-9]{2}" value="404" required></label>
+          <label>Format <select id="format"><option value="html">HTML</option><option value="json">JSON</option></select></label>
+          <label>Language
+            <select id="language">
+              <option value="en">English</option>
+              <option value="ja">日本語</option>
+              <option value="de">Deutsch</option>
+              <option value="es">Español</option>
+              <option value="fr">Français</option>
+              <option value="ko">한국어</option>
+              <option value="pt-BR">Português (Brasil)</option>
+              <option value="zh-CN">简体中文</option>
+            </select>
+          </label>
+          <button type="submit">Open response</button>
+        </form>
+      </div>
+    </section>
 
-    <h2>Routes</h2>
-    <pre>GET /html/{statuscode}?lang=xx
-GET /json/{statuscode}?lang=xx
-HEAD /html/{statuscode}?lang=xx
-HEAD /json/{statuscode}?lang=xx</pre>
-    <p>Examples: <a href="/html/502?lang=ja">/html/502?lang=ja</a> · <a href="/json/418?lang=fr">/json/418?lang=fr</a></p>
+    <section class="panel">
+      <h2>API routes</h2>
+      <div class="panel-body route-grid">
+        <article>
+          <h3>HTML</h3>
+          <code>GET /html/{statuscode}?lang=xx</code>
+          <p>English status heading with a localized explanation.</p>
+        </article>
+        <article>
+          <h3>JSON</h3>
+          <code>GET /json/{statuscode}?lang=xx</code>
+          <p><code>status</code>, English <code>message</code>, and localized <code>description</code>.</p>
+        </article>
+      </div>
+    </section>
 
-    <h2>Response format</h2>
-    <ul>
-      <li>HTML contains an English status heading, a localized description, a link back here, and a creator link. It uses no CSS.</li>
-      <li>JSON contains <code>status</code>, an always-English <code>message</code>, and a localized <code>description</code>.</li>
-    </ul>
-    <pre>{"status":404,"message":"Not Found","description":"サーバーは要求されたリソースを見つけられません。"}</pre>
+    <section class="panel">
+      <h2>Examples and response shape</h2>
+      <div class="panel-body">
+        <p><a href="/html/502?lang=ja">HTML 502 in Japanese</a> · <a href="/json/418?lang=fr">JSON 418 in French</a></p>
+        <pre>{"status":404,"message":"Not Found","description":"サーバーは要求されたリソースを見つけられません。"}</pre>
+      </div>
+    </section>
 
-    <h2>Languages</h2>
-    <p><code>en</code>, <code>ja</code>, <code>de</code>, <code>es</code>, <code>fr</code>, <code>ko</code>, <code>pt-BR</code>, and <code>zh-CN</code> are supported.</p>
-    <ul>
-      <li>If <code>lang</code> is omitted, the service uses <code>Accept-Language</code>, then English.</li>
-      <li>An unsupported <code>lang</code> value silently falls back to English.</li>
-      <li><code>pt</code> maps to <code>pt-BR</code>; <code>zh</code> and <code>zh-Hans</code> map to <code>zh-CN</code>.</li>
-    </ul>
+    <section class="panel">
+      <h2>Languages</h2>
+      <div class="panel-body">
+        <p><code>en</code>, <code>ja</code>, <code>de</code>, <code>es</code>, <code>fr</code>, <code>ko</code>, <code>pt-BR</code>, and <code>zh-CN</code> are supported.</p>
+        <ul>
+          <li>Without <code>lang</code>, the service uses <code>Accept-Language</code>, then English.</li>
+          <li>Unsupported values silently fall back to English.</li>
+          <li><code>pt</code> maps to <code>pt-BR</code>; <code>zh</code> and <code>zh-Hans</code> map to <code>zh-CN</code>.</li>
+        </ul>
+      </div>
+    </section>
 
-    <h2>Status behavior</h2>
-    <ul>
-      <li>The accepted range is 100 through 599. Registered reason phrases follow the IANA registry; unassigned values use <code>Unassigned</code>.</li>
-      <li>Descriptions are concise localized summaries based on MDN HTTP status documentation and the referenced standards.</li>
-      <li>1xx responses are interim, not final. Where supported, 100, 102, or 103 is emitted first, followed by a final 200 response containing the requested status details.</li>
-      <li>204, 205, 304, and all HEAD requests have no response body.</li>
-      <li>Responses are not cached. No authentication, cookies, or environment variables are used.</li>
-    </ul>
-
-    <p>References: <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status">MDN HTTP response status codes</a> · <a href="https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml">IANA HTTP Status Code Registry</a></p>
+    <section class="panel">
+      <h2>HTTP behavior</h2>
+      <div class="panel-body">
+        <ul>
+          <li>The accepted range is 100–599. Registered reason phrases follow IANA; other values use <code>Unassigned</code>.</li>
+          <li>Descriptions are concise localized summaries based on MDN and the referenced standards.</li>
+          <li>1xx responses are interim. Where supported, 100, 102, or 103 is emitted first, followed by the required final 200 response.</li>
+          <li>204, 205, 304, and HEAD requests have no response body.</li>
+          <li>Responses are not cached. No authentication, cookies, or environment variables are used.</li>
+        </ul>
+        <p class="muted">References: <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status">MDN HTTP status codes</a> · <a href="https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml">IANA HTTP Status Code Registry</a></p>
+      </div>
+    </section>
   </main>
+
+  <footer>HTTP Status Service · <a href="https://kihamda.net/">Kihamda.net</a></footer>
+
   <script>
     const form = document.querySelector('#request-form');
     const queryLanguage = new URLSearchParams(location.search).get('lang');
