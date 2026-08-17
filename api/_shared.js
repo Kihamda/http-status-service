@@ -1,94 +1,134 @@
-const { STATUS_CODES } = require('node:http');
+const SUPPORTED_LANGUAGES = ['en', 'ja', 'de', 'es', 'fr', 'ko', 'pt-BR', 'zh-CN'];
 
-const SUPPORTED_LANGUAGES = ['en', 'ja'];
-
-const JA_STATUS_TEXT = {
-  100: '継続', 101: 'プロトコル切替', 102: '処理中', 103: '早期ヒント',
-  200: '成功', 201: '作成済み', 202: '受理済み', 203: '信頼できない情報',
-  204: '内容なし', 205: '内容をリセット', 206: '部分的内容', 207: '複数ステータス',
-  208: '報告済み', 226: 'IM 使用済み',
-  300: '複数の選択肢', 301: '恒久的に移動', 302: '発見', 303: 'ほかを参照',
-  304: '未変更', 305: 'プロキシを使用', 307: '一時的リダイレクト', 308: '恒久的リダイレクト',
-  400: '不正なリクエスト', 401: '認証が必要', 402: '支払いが必要', 403: '禁止',
-  404: '見つかりません', 405: '許可されていないメソッド', 406: '受理できません',
-  407: 'プロキシ認証が必要', 408: 'リクエストタイムアウト', 409: '競合',
-  410: '消滅', 411: '長さが必要', 412: '前提条件に失敗', 413: 'コンテンツが大きすぎます',
-  414: 'URI が長すぎます', 415: '未対応のメディアタイプ', 416: '範囲を満たせません',
-  417: '期待に沿えません', 418: '私はティーポットです', 421: '誤った宛先のリクエスト',
-  422: '処理できないコンテンツ', 423: 'ロック済み', 424: '依存関係の失敗',
-  425: '早すぎます', 426: 'アップグレードが必要', 428: '前提条件が必要',
-  429: 'リクエストが多すぎます', 431: 'リクエストヘッダーが大きすぎます',
-  451: '法的理由により利用不可',
-  500: '内部サーバーエラー', 501: '未実装', 502: '不正なゲートウェイ',
-  503: 'サービス利用不可', 504: 'ゲートウェイタイムアウト', 505: 'HTTP バージョン未対応',
-  506: 'バリアントもネゴシエートします', 507: '容量不足', 508: 'ループを検出',
-  510: '拡張が必要', 511: 'ネットワーク認証が必要'
+// [English reason phrase, en, ja, de, es, fr, ko, pt-BR, zh-CN]
+// Descriptions are concise summaries of the semantics documented by MDN and the cited RFCs.
+const STATUS = {
+  100: ["Continue", "The client should continue the request or ignore this response if it has finished.", "クライアントはリクエストを続行するか、完了済みならこの応答を無視します。", "Der Client soll die Anfrage fortsetzen oder diese Antwort ignorieren, wenn sie bereits abgeschlossen ist.", "El cliente debe continuar la solicitud o ignorar esta respuesta si ya terminó.", "Le client doit poursuivre la requête ou ignorer cette réponse si elle est terminée.", "클라이언트는 요청을 계속하거나 이미 완료했다면 이 응답을 무시합니다.", "O cliente deve continuar a solicitação ou ignorar esta resposta se ela já terminou.", "客户端应继续请求；如果请求已经完成，则忽略此响应。"],
+  101: ["Switching Protocols", "The server is switching to the protocol requested in the Upgrade header.", "サーバーは Upgrade ヘッダーで要求されたプロトコルへ切り替えます。", "Der Server wechselt zu dem im Upgrade-Header angeforderten Protokoll.", "El servidor cambia al protocolo solicitado en la cabecera Upgrade.", "Le serveur passe au protocole demandé dans l’en-tête Upgrade.", "서버가 Upgrade 헤더에서 요청한 프로토콜로 전환합니다.", "O servidor muda para o protocolo solicitado no cabeçalho Upgrade.", "服务器正在切换到 Upgrade 标头中请求的协议。"],
+  102: ["Processing", "The server received the complete request but has not produced a final response yet.", "サーバーはリクエスト全体を受信しましたが、まだ最終応答を生成していません。", "Der Server hat die vollständige Anfrage empfangen, aber noch keine endgültige Antwort erzeugt.", "El servidor recibió la solicitud completa, pero aún no produjo una respuesta final.", "Le serveur a reçu la requête complète, mais n’a pas encore produit de réponse finale.", "서버가 전체 요청을 받았지만 아직 최종 응답을 만들지 못했습니다.", "O servidor recebeu a solicitação completa, mas ainda não produziu uma resposta final.", "服务器已收到完整请求，但尚未生成最终响应。"],
+  103: ["Early Hints", "Preliminary headers let the client preload resources while the final response is prepared.", "最終応答の準備中に、予備ヘッダーでクライアントへリソースの先読みを促します。", "Vorläufige Header ermöglichen dem Client das Vorladen von Ressourcen, während die endgültige Antwort vorbereitet wird.", "Las cabeceras preliminares permiten precargar recursos mientras se prepara la respuesta final.", "Des en-têtes préliminaires permettent de précharger des ressources pendant la préparation de la réponse finale.", "최종 응답을 준비하는 동안 예비 헤더로 리소스를 미리 불러올 수 있게 합니다.", "Cabeçalhos preliminares permitem pré-carregar recursos enquanto a resposta final é preparada.", "初步标头允许客户端在最终响应准备期间预加载资源。"],
+  104: ["Upload Resumption Supported", "The server supports resuming an interrupted upload. This registration is temporary.", "サーバーは中断されたアップロードの再開に対応しています。この登録は暫定的です。", "Der Server unterstützt das Fortsetzen eines unterbrochenen Uploads. Diese Registrierung ist vorläufig.", "El servidor permite reanudar una carga interrumpida. Este registro es temporal.", "Le serveur prend en charge la reprise d’un téléversement interrompu. Cet enregistrement est temporaire.", "서버가 중단된 업로드 재개를 지원합니다. 이 등록은 임시입니다.", "O servidor permite retomar um upload interrompido. Este registro é temporário.", "服务器支持恢复中断的上传。此注册是临时的。"],
+  200: ["OK", "The request succeeded; the result depends on the HTTP method used.", "リクエストは成功しました。結果の意味は使用した HTTP メソッドによって異なります。", "Die Anfrage war erfolgreich; das Ergebnis hängt von der verwendeten HTTP-Methode ab.", "La solicitud se realizó correctamente; el resultado depende del método HTTP utilizado.", "La requête a réussi ; le résultat dépend de la méthode HTTP utilisée.", "요청이 성공했으며 결과의 의미는 사용한 HTTP 메서드에 따라 달라집니다.", "A solicitação foi bem-sucedida; o resultado depende do método HTTP utilizado.", "请求成功；结果取决于所使用的 HTTP 方法。"],
+  201: ["Created", "The request succeeded and created a new resource.", "リクエストが成功し、新しいリソースが作成されました。", "Die Anfrage war erfolgreich und hat eine neue Ressource erstellt.", "La solicitud se realizó correctamente y creó un recurso nuevo.", "La requête a réussi et a créé une nouvelle ressource.", "요청이 성공하여 새 리소스가 생성되었습니다.", "A solicitação foi bem-sucedida e criou um novo recurso.", "请求成功并创建了新资源。"],
+  202: ["Accepted", "The request was accepted for processing, but processing has not completed.", "リクエストは処理対象として受理されましたが、処理は完了していません。", "Die Anfrage wurde zur Verarbeitung angenommen, ist aber noch nicht abgeschlossen.", "La solicitud fue aceptada para procesarse, pero el proceso aún no terminó.", "La requête a été acceptée pour traitement, mais celui-ci n’est pas terminé.", "요청이 처리 대상으로 수락되었지만 처리는 아직 완료되지 않았습니다.", "A solicitação foi aceita para processamento, mas o processamento ainda não terminou.", "请求已被接受处理，但处理尚未完成。"],
+  203: ["Non-Authoritative Information", "The returned metadata came from a local or third-party copy rather than the origin.", "返されたメタデータはオリジンではなく、ローカルまたは第三者のコピーに由来します。", "Die zurückgegebenen Metadaten stammen aus einer lokalen oder Drittanbieter-Kopie statt vom Ursprung.", "Los metadatos devueltos proceden de una copia local o de terceros, no del origen.", "Les métadonnées renvoyées proviennent d’une copie locale ou tierce plutôt que de l’origine.", "반환된 메타데이터가 원본 서버가 아닌 로컬 또는 제3자 사본에서 왔습니다.", "Os metadados retornados vieram de uma cópia local ou de terceiros, não da origem.", "返回的元数据来自本地或第三方副本，而不是源服务器。"],
+  204: ["No Content", "The request succeeded and there is no response body to send.", "リクエストは成功しましたが、返すレスポンス本文はありません。", "Die Anfrage war erfolgreich und es gibt keinen Antwortinhalt.", "La solicitud se realizó correctamente y no hay cuerpo de respuesta.", "La requête a réussi et aucun corps de réponse n’est envoyé.", "요청은 성공했지만 보낼 응답 본문이 없습니다.", "A solicitação foi bem-sucedida e não há corpo de resposta a enviar.", "请求成功，但没有要发送的响应正文。"],
+  205: ["Reset Content", "The client should reset the document that sent the request.", "クライアントはリクエストを送信した文書をリセットする必要があります。", "Der Client soll das Dokument zurücksetzen, das die Anfrage gesendet hat.", "El cliente debe restablecer el documento que envió la solicitud.", "Le client doit réinitialiser le document ayant envoyé la requête.", "클라이언트는 요청을 보낸 문서를 초기화해야 합니다.", "O cliente deve redefinir o documento que enviou a solicitação.", "客户端应重置发送该请求的文档。"],
+  206: ["Partial Content", "The server is returning the requested range of a resource.", "サーバーは要求されたリソースの範囲を返しています。", "Der Server gibt den angeforderten Bereich einer Ressource zurück.", "El servidor devuelve el intervalo solicitado de un recurso.", "Le serveur renvoie la plage demandée d’une ressource.", "서버가 요청된 리소스 범위를 반환합니다.", "O servidor retorna o intervalo solicitado de um recurso.", "服务器正在返回资源的请求范围。"],
+  207: ["Multi-Status", "The response contains status information for multiple resources.", "レスポンスには複数のリソースに対するステータス情報が含まれます。", "Die Antwort enthält Statusinformationen für mehrere Ressourcen.", "La respuesta contiene información de estado para varios recursos.", "La réponse contient des informations d’état pour plusieurs ressources.", "응답에 여러 리소스의 상태 정보가 포함됩니다.", "A resposta contém informações de status para vários recursos.", "响应包含多个资源的状态信息。"],
+  208: ["Already Reported", "Previously reported WebDAV bindings are not listed again.", "以前に報告された WebDAV バインディングは再度列挙されません。", "Bereits gemeldete WebDAV-Bindungen werden nicht erneut aufgeführt.", "Los enlaces WebDAV ya informados no se vuelven a enumerar.", "Les liaisons WebDAV déjà signalées ne sont pas listées à nouveau.", "이전에 보고된 WebDAV 바인딩은 다시 나열되지 않습니다.", "Vínculos WebDAV já relatados não são listados novamente.", "先前已报告的 WebDAV 绑定不会再次列出。"],
+  226: ["IM Used", "The response represents one or more instance manipulations applied to the resource.", "レスポンスはリソースに一つ以上のインスタンス操作を適用した結果です。", "Die Antwort stellt das Ergebnis einer oder mehrerer Instanzmanipulationen an der Ressource dar.", "La respuesta representa una o más manipulaciones de instancia aplicadas al recurso.", "La réponse représente une ou plusieurs manipulations d’instance appliquées à la ressource.", "응답은 리소스에 하나 이상의 인스턴스 조작을 적용한 결과입니다.", "A resposta representa uma ou mais manipulações de instância aplicadas ao recurso.", "响应表示对资源应用一个或多个实例操作后的结果。"],
+  300: ["Multiple Choices", "More than one possible response is available and a choice is required.", "複数の応答候補があり、いずれかを選択する必要があります。", "Es gibt mehrere mögliche Antworten und eine Auswahl ist erforderlich.", "Hay más de una respuesta posible y se debe elegir una.", "Plusieurs réponses sont possibles et un choix est nécessaire.", "가능한 응답이 여러 개이므로 하나를 선택해야 합니다.", "Há mais de uma resposta possível e é necessário escolher uma.", "存在多个可能的响应，需要进行选择。"],
+  301: ["Moved Permanently", "The requested resource has permanently moved to a new URL.", "要求されたリソースは新しい URL へ恒久的に移動しました。", "Die angeforderte Ressource wurde dauerhaft an eine neue URL verschoben.", "El recurso solicitado se trasladó permanentemente a una URL nueva.", "La ressource demandée a été déplacée définitivement vers une nouvelle URL.", "요청한 리소스가 새 URL로 영구 이동했습니다.", "O recurso solicitado foi movido permanentemente para uma nova URL.", "请求的资源已永久移动到新 URL。"],
+  302: ["Found", "The requested resource is temporarily available at another URI.", "要求されたリソースは一時的に別の URI で提供されています。", "Die angeforderte Ressource ist vorübergehend unter einem anderen URI verfügbar.", "El recurso solicitado está disponible temporalmente en otro URI.", "La ressource demandée est temporairement disponible à un autre URI.", "요청한 리소스를 다른 URI에서 임시로 사용할 수 있습니다.", "O recurso solicitado está temporariamente disponível em outro URI.", "请求的资源暂时位于另一个 URI。"],
+  303: ["See Other", "Retrieve the result from another URI with a GET request.", "結果は別の URI に対する GET リクエストで取得します。", "Das Ergebnis soll mit einer GET-Anfrage von einem anderen URI abgerufen werden.", "El resultado debe obtenerse desde otro URI mediante una solicitud GET.", "Le résultat doit être récupéré depuis un autre URI avec une requête GET.", "결과는 다른 URI에 GET 요청을 보내 가져와야 합니다.", "O resultado deve ser obtido de outro URI com uma solicitação GET.", "应通过 GET 请求从另一个 URI 获取结果。"],
+  304: ["Not Modified", "The cached representation is still valid and can be reused.", "キャッシュ済みの表現は変更されておらず、引き続き利用できます。", "Die zwischengespeicherte Darstellung ist weiterhin gültig und kann wiederverwendet werden.", "La representación en caché sigue siendo válida y puede reutilizarse.", "La représentation en cache est toujours valide et peut être réutilisée.", "캐시된 표현이 여전히 유효하므로 재사용할 수 있습니다.", "A representação em cache ainda é válida e pode ser reutilizada.", "缓存的表示仍然有效，可以继续使用。"],
+  305: ["Use Proxy", "The resource was intended to be accessed through a proxy; this status is deprecated.", "リソースはプロキシ経由でのアクセスを意図していましたが、このステータスは非推奨です。", "Die Ressource sollte über einen Proxy erreicht werden; dieser Status ist veraltet.", "El recurso debía accederse mediante un proxy; este estado está obsoleto.", "La ressource devait être accessible via un proxy ; ce statut est obsolète.", "리소스를 프록시를 통해 접근하도록 의도했지만 이 상태는 더 이상 권장되지 않습니다.", "O recurso deveria ser acessado por um proxy; este status está obsoleto.", "该资源原本应通过代理访问；此状态已弃用。"],
+  306: ["(Unused)", "This reserved status code is no longer used.", "この予約済みステータスコードは現在使用されていません。", "Dieser reservierte Statuscode wird nicht mehr verwendet.", "Este código de estado reservado ya no se utiliza.", "Ce code d’état réservé n’est plus utilisé.", "이 예약된 상태 코드는 더 이상 사용되지 않습니다.", "Este código de status reservado não é mais usado.", "此保留状态码已不再使用。"],
+  307: ["Temporary Redirect", "The resource is temporarily elsewhere; repeat the request with the same method and body.", "リソースは一時的に別の場所にあります。同じメソッドと本文でリクエストを再送します。", "Die Ressource befindet sich vorübergehend woanders; die Anfrage ist mit derselben Methode und demselben Inhalt zu wiederholen.", "El recurso está temporalmente en otro lugar; repita la solicitud con el mismo método y cuerpo.", "La ressource se trouve temporairement ailleurs ; répétez la requête avec la même méthode et le même corps.", "리소스가 일시적으로 다른 곳에 있으므로 같은 메서드와 본문으로 요청을 반복합니다.", "O recurso está temporariamente em outro local; repita a solicitação com o mesmo método e corpo.", "资源暂时位于其他位置；请使用相同的方法和正文重新请求。"],
+  308: ["Permanent Redirect", "The resource permanently moved; repeat requests at the new URI with the same method and body.", "リソースは恒久的に移動しました。新しい URI へ同じメソッドと本文でリクエストします。", "Die Ressource wurde dauerhaft verschoben; Anfragen sind am neuen URI mit derselben Methode und demselben Inhalt zu wiederholen.", "El recurso se trasladó permanentemente; repita las solicitudes en el URI nuevo con el mismo método y cuerpo.", "La ressource a été déplacée définitivement ; répétez les requêtes au nouvel URI avec la même méthode et le même corps.", "리소스가 영구 이동했으므로 새 URI에 같은 메서드와 본문으로 요청합니다.", "O recurso foi movido permanentemente; repita as solicitações no novo URI com o mesmo método e corpo.", "资源已永久移动；请在新 URI 上使用相同的方法和正文重新请求。"],
+  400: ["Bad Request", "The server cannot process the request because it appears malformed or invalid.", "リクエストが不正または無効とみなされたため、サーバーは処理できません。", "Der Server kann die Anfrage nicht verarbeiten, weil sie fehlerhaft oder ungültig erscheint.", "El servidor no puede procesar la solicitud porque parece estar mal formada o ser inválida.", "Le serveur ne peut pas traiter la requête car elle semble mal formée ou invalide.", "요청이 잘못되었거나 유효하지 않아 서버가 처리할 수 없습니다.", "O servidor não pode processar a solicitação porque ela parece malformada ou inválida.", "请求似乎格式错误或无效，服务器无法处理。"],
+  401: ["Unauthorized", "Authentication is required before the requested response can be provided.", "要求された応答を得るには認証が必要です。", "Vor der Bereitstellung der angeforderten Antwort ist eine Authentifizierung erforderlich.", "Se requiere autenticación antes de proporcionar la respuesta solicitada.", "Une authentification est requise avant de fournir la réponse demandée.", "요청한 응답을 받으려면 인증이 필요합니다.", "É necessária autenticação antes que a resposta solicitada seja fornecida.", "必须先进行身份验证，才能提供请求的响应。"],
+  402: ["Payment Required", "This code is reserved for future payment-related use and has no standard convention.", "このコードは将来の支払い用途向けに予約されており、標準的な用法はありません。", "Dieser Code ist für zukünftige zahlungsbezogene Zwecke reserviert und hat keine standardisierte Verwendung.", "Este código está reservado para usos futuros relacionados con pagos y no tiene una convención estándar.", "Ce code est réservé à un usage futur lié au paiement et n’a pas de convention standard.", "이 코드는 향후 결제 관련 용도로 예약되어 있으며 표준 사용 방식은 없습니다.", "Este código é reservado para uso futuro relacionado a pagamentos e não possui convenção padrão.", "此代码保留用于未来的支付场景，目前没有标准用法。"],
+  403: ["Forbidden", "The server knows the client identity but refuses access to the resource.", "サーバーはクライアントを識別していますが、リソースへのアクセスを拒否しています。", "Der Server kennt die Identität des Clients, verweigert aber den Zugriff auf die Ressource.", "El servidor conoce la identidad del cliente, pero rechaza el acceso al recurso.", "Le serveur connaît l’identité du client mais refuse l’accès à la ressource.", "서버가 클라이언트의 신원을 알고 있지만 리소스 접근을 거부합니다.", "O servidor conhece a identidade do cliente, mas recusa o acesso ao recurso.", "服务器知道客户端身份，但拒绝访问该资源。"],
+  404: ["Not Found", "The server cannot find the requested resource.", "サーバーは要求されたリソースを見つけられません。", "Der Server kann die angeforderte Ressource nicht finden.", "El servidor no puede encontrar el recurso solicitado.", "Le serveur ne trouve pas la ressource demandée.", "서버가 요청한 리소스를 찾을 수 없습니다.", "O servidor não consegue encontrar o recurso solicitado.", "服务器找不到请求的资源。"],
+  405: ["Method Not Allowed", "The server knows the request method, but the target resource does not support it.", "サーバーはリクエストメソッドを認識していますが、対象リソースは対応していません。", "Der Server kennt die Anfragemethode, aber die Zielressource unterstützt sie nicht.", "El servidor conoce el método de solicitud, pero el recurso de destino no lo admite.", "Le serveur connaît la méthode de requête, mais la ressource cible ne la prend pas en charge.", "서버가 요청 메서드를 알고 있지만 대상 리소스가 이를 지원하지 않습니다.", "O servidor conhece o método da solicitação, mas o recurso de destino não o aceita.", "服务器识别请求方法，但目标资源不支持该方法。"],
+  406: ["Not Acceptable", "No available representation matches the client’s content negotiation preferences.", "利用可能な表現の中に、クライアントのコンテンツネゴシエーション条件を満たすものがありません。", "Keine verfügbare Darstellung entspricht den Präferenzen der Inhaltsaushandlung des Clients.", "Ninguna representación disponible coincide con las preferencias de negociación de contenido del cliente.", "Aucune représentation disponible ne correspond aux préférences de négociation de contenu du client.", "사용 가능한 표현 중 클라이언트의 콘텐츠 협상 조건을 충족하는 것이 없습니다.", "Nenhuma representação disponível corresponde às preferências de negociação de conteúdo do cliente.", "没有可用表示符合客户端的内容协商偏好。"],
+  407: ["Proxy Authentication Required", "Authentication with the proxy is required.", "プロキシでの認証が必要です。", "Eine Authentifizierung beim Proxy ist erforderlich.", "Se requiere autenticación con el proxy.", "Une authentification auprès du proxy est requise.", "프록시 인증이 필요합니다.", "É necessária autenticação com o proxy.", "需要向代理进行身份验证。"],
+  408: ["Request Timeout", "The server timed out while waiting for the request.", "サーバーがリクエストを待機している間にタイムアウトしました。", "Beim Warten auf die Anfrage ist auf dem Server eine Zeitüberschreitung aufgetreten.", "El servidor agotó el tiempo de espera mientras aguardaba la solicitud.", "Le serveur a dépassé le délai d’attente de la requête.", "서버가 요청을 기다리는 동안 시간이 초과되었습니다.", "O servidor atingiu o tempo limite enquanto aguardava a solicitação.", "服务器等待请求时超时。"],
+  409: ["Conflict", "The request conflicts with the current state of the server or resource.", "リクエストがサーバーまたはリソースの現在の状態と競合しています。", "Die Anfrage steht im Konflikt mit dem aktuellen Zustand des Servers oder der Ressource.", "La solicitud entra en conflicto con el estado actual del servidor o recurso.", "La requête entre en conflit avec l’état actuel du serveur ou de la ressource.", "요청이 서버 또는 리소스의 현재 상태와 충돌합니다.", "A solicitação entra em conflito com o estado atual do servidor ou recurso.", "请求与服务器或资源的当前状态冲突。"],
+  410: ["Gone", "The requested content was permanently removed and has no forwarding address.", "要求されたコンテンツは恒久的に削除され、転送先もありません。", "Der angeforderte Inhalt wurde dauerhaft entfernt und hat keine Weiterleitungsadresse.", "El contenido solicitado se eliminó permanentemente y no tiene dirección de reenvío.", "Le contenu demandé a été supprimé définitivement et n’a pas d’adresse de redirection.", "요청한 콘텐츠가 영구 삭제되었으며 전달 주소도 없습니다.", "O conteúdo solicitado foi removido permanentemente e não possui endereço de encaminhamento.", "请求的内容已被永久删除，且没有转发地址。"],
+  411: ["Length Required", "The server requires a Content-Length header for this request.", "サーバーはこのリクエストに Content-Length ヘッダーを要求しています。", "Der Server verlangt für diese Anfrage einen Content-Length-Header.", "El servidor requiere una cabecera Content-Length para esta solicitud.", "Le serveur exige un en-tête Content-Length pour cette requête.", "서버가 이 요청에 Content-Length 헤더를 요구합니다.", "O servidor exige um cabeçalho Content-Length para esta solicitação.", "服务器要求此请求包含 Content-Length 标头。"],
+  412: ["Precondition Failed", "A condition in the request headers evaluated to false on the server.", "リクエストヘッダーの前提条件がサーバー上で満たされませんでした。", "Eine Bedingung in den Anfrage-Headern wurde auf dem Server nicht erfüllt.", "Una condición de las cabeceras de la solicitud resultó falsa en el servidor.", "Une condition des en-têtes de requête s’est révélée fausse sur le serveur.", "요청 헤더의 전제 조건이 서버에서 충족되지 않았습니다.", "Uma condição nos cabeçalhos da solicitação foi avaliada como falsa no servidor.", "请求标头中的某个前置条件在服务器上不成立。"],
+  413: ["Content Too Large", "The request content is larger than the server is willing or able to process.", "リクエスト内容が、サーバーの処理可能または許容するサイズを超えています。", "Der Anfrageinhalt ist größer, als der Server verarbeiten kann oder will.", "El contenido de la solicitud supera el tamaño que el servidor puede o quiere procesar.", "Le contenu de la requête dépasse la taille que le serveur peut ou veut traiter.", "요청 콘텐츠가 서버가 처리할 수 있거나 허용하는 크기보다 큽니다.", "O conteúdo da solicitação é maior do que o servidor pode ou deseja processar.", "请求内容超过服务器能够或愿意处理的大小。"],
+  414: ["URI Too Long", "The requested URI is longer than the server is willing to interpret.", "リクエスト URI が、サーバーの解釈可能または許容する長さを超えています。", "Der angeforderte URI ist länger, als der Server interpretieren will.", "El URI solicitado es más largo de lo que el servidor está dispuesto a interpretar.", "L’URI demandé est plus long que ce que le serveur accepte d’interpréter.", "요청 URI가 서버가 해석하도록 허용하는 길이보다 깁니다.", "O URI solicitado é maior do que o servidor está disposto a interpretar.", "请求的 URI 长于服务器愿意解析的长度。"],
+  415: ["Unsupported Media Type", "The server does not support the format of the request content.", "サーバーはリクエスト内容の形式に対応していません。", "Der Server unterstützt das Format des Anfrageinhalts nicht.", "El servidor no admite el formato del contenido de la solicitud.", "Le serveur ne prend pas en charge le format du contenu de la requête.", "서버가 요청 콘텐츠 형식을 지원하지 않습니다.", "O servidor não aceita o formato do conteúdo da solicitação.", "服务器不支持请求内容的格式。"],
+  416: ["Range Not Satisfiable", "The requested range cannot be satisfied for this resource.", "要求された範囲をこのリソースで満たすことができません。", "Der angeforderte Bereich kann für diese Ressource nicht erfüllt werden.", "El intervalo solicitado no puede satisfacerse para este recurso.", "La plage demandée ne peut pas être satisfaite pour cette ressource.", "요청한 범위를 이 리소스에서 충족할 수 없습니다.", "O intervalo solicitado não pode ser atendido para este recurso.", "此资源无法满足请求的范围。"],
+  417: ["Expectation Failed", "The server cannot meet the expectation in the Expect request header.", "サーバーは Expect リクエストヘッダーの要求を満たすことができません。", "Der Server kann die Erwartung im Expect-Anfrage-Header nicht erfüllen.", "El servidor no puede cumplir la expectativa indicada en la cabecera Expect.", "Le serveur ne peut pas satisfaire l’attente indiquée dans l’en-tête Expect.", "서버가 Expect 요청 헤더의 기대 조건을 충족할 수 없습니다.", "O servidor não pode atender à expectativa no cabeçalho Expect.", "服务器无法满足 Expect 请求标头中的预期。"],
+  418: ["I'm a Teapot", "The server refuses to brew coffee because it is a teapot.", "サーバーはティーポットなので、コーヒーを淹れることを拒否します。", "Der Server weigert sich, Kaffee zu kochen, weil er eine Teekanne ist.", "El servidor se niega a preparar café porque es una tetera.", "Le serveur refuse de préparer du café parce que c’est une théière.", "서버가 찻주전자이므로 커피 추출을 거부합니다.", "O servidor se recusa a preparar café porque é um bule de chá.", "服务器拒绝煮咖啡，因为它是一只茶壶。"],
+  421: ["Misdirected Request", "The request was sent to a server that cannot produce a response for the target URI.", "対象 URI の応答を生成できないサーバーへリクエストが送信されました。", "Die Anfrage wurde an einen Server gesendet, der für den Ziel-URI keine Antwort erzeugen kann.", "La solicitud se envió a un servidor que no puede producir una respuesta para el URI de destino.", "La requête a été envoyée à un serveur incapable de produire une réponse pour l’URI cible.", "대상 URI에 응답할 수 없는 서버로 요청이 전송되었습니다.", "A solicitação foi enviada a um servidor que não pode produzir uma resposta para o URI de destino.", "请求被发送到无法为目标 URI 生成响应的服务器。"],
+  422: ["Unprocessable Content", "The request syntax is valid, but its instructions cannot be processed.", "リクエストの構文は正しいものの、その指示を処理できません。", "Die Syntax der Anfrage ist gültig, aber ihre Anweisungen können nicht verarbeitet werden.", "La sintaxis de la solicitud es válida, pero sus instrucciones no pueden procesarse.", "La syntaxe de la requête est valide, mais ses instructions ne peuvent pas être traitées.", "요청 구문은 올바르지만 포함된 지시를 처리할 수 없습니다.", "A sintaxe da solicitação é válida, mas suas instruções não podem ser processadas.", "请求语法有效，但其中的指令无法处理。"],
+  423: ["Locked", "The target resource is locked.", "対象リソースはロックされています。", "Die Zielressource ist gesperrt.", "El recurso de destino está bloqueado.", "La ressource cible est verrouillée.", "대상 리소스가 잠겨 있습니다.", "O recurso de destino está bloqueado.", "目标资源已被锁定。"],
+  424: ["Failed Dependency", "The request failed because an action it depended on failed.", "依存している処理が失敗したため、リクエストも失敗しました。", "Die Anfrage ist fehlgeschlagen, weil eine abhängige Aktion fehlgeschlagen ist.", "La solicitud falló porque una acción de la que dependía también falló.", "La requête a échoué parce qu’une action dont elle dépendait a échoué.", "의존하던 작업이 실패하여 요청도 실패했습니다.", "A solicitação falhou porque uma ação da qual dependia também falhou.", "请求失败，因为它所依赖的操作失败了。"],
+  425: ["Too Early", "The server will not process a request that might be replayed.", "サーバーは再送攻撃の可能性があるリクエストを処理しません。", "Der Server verarbeitet keine Anfrage, die möglicherweise wiederholt wird.", "El servidor no procesará una solicitud que pueda reproducirse.", "Le serveur ne traitera pas une requête susceptible d’être rejouée.", "서버가 재전송될 가능성이 있는 요청을 처리하지 않습니다.", "O servidor não processará uma solicitação que possa ser repetida.", "服务器不会处理可能被重放的请求。"],
+  426: ["Upgrade Required", "The server requires the client to switch to a different protocol.", "サーバーはクライアントに別のプロトコルへの切り替えを要求しています。", "Der Server verlangt vom Client den Wechsel zu einem anderen Protokoll.", "El servidor exige que el cliente cambie a otro protocolo.", "Le serveur exige que le client passe à un autre protocole.", "서버가 클라이언트에 다른 프로토콜로 전환할 것을 요구합니다.", "O servidor exige que o cliente mude para outro protocolo.", "服务器要求客户端切换到其他协议。"],
+  428: ["Precondition Required", "The origin server requires this request to be conditional.", "オリジンサーバーは、このリクエストに前提条件を付けることを要求しています。", "Der Ursprungsserver verlangt, dass diese Anfrage bedingt ist.", "El servidor de origen exige que esta solicitud sea condicional.", "Le serveur d’origine exige que cette requête soit conditionnelle.", "원본 서버가 이 요청에 전제 조건을 포함하도록 요구합니다.", "O servidor de origem exige que esta solicitação seja condicional.", "源服务器要求此请求带有前置条件。"],
+  429: ["Too Many Requests", "The client sent too many requests within a given period.", "クライアントが一定時間内に送信したリクエスト数が多すぎます。", "Der Client hat innerhalb eines bestimmten Zeitraums zu viele Anfragen gesendet.", "El cliente envió demasiadas solicitudes en un período determinado.", "Le client a envoyé trop de requêtes pendant une période donnée.", "클라이언트가 일정 시간 동안 너무 많은 요청을 보냈습니다.", "O cliente enviou solicitações demais em um determinado período.", "客户端在给定时间内发送了过多请求。"],
+  431: ["Request Header Fields Too Large", "The server refuses the request because its header fields are too large.", "リクエストヘッダーフィールドが大きすぎるため、サーバーはリクエストを拒否しました。", "Der Server lehnt die Anfrage ab, weil ihre Header-Felder zu groß sind.", "El servidor rechaza la solicitud porque sus campos de cabecera son demasiado grandes.", "Le serveur refuse la requête car ses champs d’en-tête sont trop volumineux.", "요청 헤더 필드가 너무 커서 서버가 요청을 거부합니다.", "O servidor recusa a solicitação porque seus campos de cabeçalho são grandes demais.", "请求标头字段过大，服务器拒绝该请求。"],
+  451: ["Unavailable For Legal Reasons", "The resource is unavailable because of a legal demand.", "法的な要求により、このリソースは利用できません。", "Die Ressource ist aufgrund einer rechtlichen Anforderung nicht verfügbar.", "El recurso no está disponible debido a una exigencia legal.", "La ressource est indisponible en raison d’une exigence légale.", "법적 요구로 인해 리소스를 사용할 수 없습니다.", "O recurso está indisponível devido a uma exigência legal.", "由于法律要求，该资源不可用。"],
+  500: ["Internal Server Error", "The server encountered an unexpected condition and has no more specific error response.", "サーバーで予期しない状況が発生し、より具体的なエラー応答を返せません。", "Auf dem Server ist ein unerwarteter Zustand aufgetreten, für den es keine spezifischere Fehlerantwort gibt.", "El servidor encontró una condición inesperada y no dispone de una respuesta de error más específica.", "Le serveur a rencontré une situation inattendue sans réponse d’erreur plus précise.", "서버에 예기치 않은 상황이 발생했으며 더 구체적인 오류 응답이 없습니다.", "O servidor encontrou uma condição inesperada e não possui uma resposta de erro mais específica.", "服务器遇到意外情况，且没有更具体的错误响应。"],
+  501: ["Not Implemented", "The server does not support the functionality required to fulfill the request.", "サーバーはリクエストの処理に必要な機能に対応していません。", "Der Server unterstützt die zur Erfüllung der Anfrage erforderliche Funktion nicht.", "El servidor no admite la funcionalidad necesaria para completar la solicitud.", "Le serveur ne prend pas en charge la fonctionnalité nécessaire pour satisfaire la requête.", "서버가 요청 처리에 필요한 기능을 지원하지 않습니다.", "O servidor não aceita a funcionalidade necessária para atender à solicitação.", "服务器不支持完成请求所需的功能。"],
+  502: ["Bad Gateway", "A gateway or proxy received an invalid response from an upstream server.", "ゲートウェイまたはプロキシが上流サーバーから無効な応答を受信しました。", "Ein Gateway oder Proxy hat eine ungültige Antwort von einem vorgelagerten Server erhalten.", "Una puerta de enlace o proxy recibió una respuesta inválida de un servidor ascendente.", "Une passerelle ou un proxy a reçu une réponse invalide d’un serveur en amont.", "게이트웨이 또는 프록시가 업스트림 서버에서 잘못된 응답을 받았습니다.", "Um gateway ou proxy recebeu uma resposta inválida de um servidor upstream.", "网关或代理从上游服务器收到了无效响应。"],
+  503: ["Service Unavailable", "The server is temporarily unable to handle the request, often because of maintenance or overload.", "サーバーは、メンテナンスや過負荷などにより一時的にリクエストを処理できません。", "Der Server kann die Anfrage vorübergehend nicht bearbeiten, häufig wegen Wartung oder Überlastung.", "El servidor no puede atender temporalmente la solicitud, a menudo por mantenimiento o sobrecarga.", "Le serveur ne peut temporairement pas traiter la requête, souvent pour cause de maintenance ou de surcharge.", "서버가 유지보수나 과부하 등의 이유로 일시적으로 요청을 처리할 수 없습니다.", "O servidor está temporariamente incapaz de atender à solicitação, geralmente por manutenção ou sobrecarga.", "服务器暂时无法处理请求，通常是由于维护或过载。"],
+  504: ["Gateway Timeout", "A gateway or proxy did not receive an upstream response in time.", "ゲートウェイまたはプロキシが上流サーバーから時間内に応答を受信できませんでした。", "Ein Gateway oder Proxy hat nicht rechtzeitig eine Antwort vom vorgelagerten Server erhalten.", "Una puerta de enlace o proxy no recibió a tiempo una respuesta del servidor ascendente.", "Une passerelle ou un proxy n’a pas reçu à temps de réponse du serveur en amont.", "게이트웨이 또는 프록시가 업스트림 서버의 응답을 제시간에 받지 못했습니다.", "Um gateway ou proxy não recebeu a tempo uma resposta do servidor upstream.", "网关或代理未能及时收到上游服务器的响应。"],
+  505: ["HTTP Version Not Supported", "The server does not support the HTTP version used in the request.", "サーバーはリクエストで使用された HTTP バージョンに対応していません。", "Der Server unterstützt die in der Anfrage verwendete HTTP-Version nicht.", "El servidor no admite la versión de HTTP utilizada en la solicitud.", "Le serveur ne prend pas en charge la version HTTP utilisée dans la requête.", "서버가 요청에 사용된 HTTP 버전을 지원하지 않습니다.", "O servidor não aceita a versão HTTP usada na solicitação.", "服务器不支持请求中使用的 HTTP 版本。"],
+  506: ["Variant Also Negotiates", "The server has a circular content negotiation configuration.", "サーバーのコンテンツネゴシエーション設定に循環参照があります。", "Die Konfiguration der Inhaltsaushandlung des Servers enthält einen Zirkelbezug.", "El servidor tiene una configuración circular de negociación de contenido.", "Le serveur présente une configuration circulaire de négociation de contenu.", "서버의 콘텐츠 협상 설정에 순환 참조가 있습니다.", "O servidor possui uma configuração circular de negociação de conteúdo.", "服务器的内容协商配置存在循环引用。"],
+  507: ["Insufficient Storage", "The server cannot store the representation needed to complete the request.", "サーバーはリクエストの完了に必要な表現を保存できません。", "Der Server kann die zur Erfüllung der Anfrage benötigte Darstellung nicht speichern.", "El servidor no puede almacenar la representación necesaria para completar la solicitud.", "Le serveur ne peut pas stocker la représentation nécessaire pour terminer la requête.", "서버가 요청 완료에 필요한 표현을 저장할 수 없습니다.", "O servidor não pode armazenar a representação necessária para concluir a solicitação.", "服务器无法存储完成请求所需的表示。"],
+  508: ["Loop Detected", "The server detected an infinite loop while processing the request.", "サーバーはリクエストの処理中に無限ループを検出しました。", "Der Server hat bei der Verarbeitung der Anfrage eine Endlosschleife erkannt.", "El servidor detectó un bucle infinito al procesar la solicitud.", "Le serveur a détecté une boucle infinie pendant le traitement de la requête.", "서버가 요청 처리 중 무한 루프를 감지했습니다.", "O servidor detectou um loop infinito ao processar a solicitação.", "服务器在处理请求时检测到无限循环。"],
+  510: ["Not Extended", "The server requires additional extensions to fulfill the request.", "サーバーはリクエストを処理するために追加の拡張を必要としています。", "Der Server benötigt zusätzliche Erweiterungen, um die Anfrage zu erfüllen.", "El servidor necesita extensiones adicionales para completar la solicitud.", "Le serveur exige des extensions supplémentaires pour satisfaire la requête.", "서버가 요청을 처리하려면 추가 확장이 필요합니다.", "O servidor exige extensões adicionais para atender à solicitação.", "服务器需要额外扩展才能完成请求。"],
+  511: ["Network Authentication Required", "The client must authenticate to gain access to the network.", "クライアントはネットワークへアクセスするために認証する必要があります。", "Der Client muss sich authentifizieren, um Netzwerkzugriff zu erhalten.", "El cliente debe autenticarse para obtener acceso a la red.", "Le client doit s’authentifier pour accéder au réseau.", "클라이언트가 네트워크에 접근하려면 인증해야 합니다.", "O cliente deve se autenticar para obter acesso à rede.", "客户端必须进行身份验证才能访问网络。"]
 };
 
-const COPY = {
-  en: {
-    title: 'HTTP status response',
-    requested: 'Requested status',
-    reason: 'Reason',
-    language: 'Language',
-    unknown: 'Unassigned status code',
-    invalid: 'The status code must be an integer from 100 through 599.',
-    informational: 'A 1xx response is interim and cannot be the final response. This endpoint emits the informational response when the runtime supports it, then returns 200 as the required final response.',
-    classes: {
-      1: 'The request was received and processing is continuing.',
-      2: 'The request was successfully received, understood, and accepted.',
-      3: 'Further action is needed to complete the request.',
-      4: 'The request could not be fulfilled because of a client-side condition.',
-      5: 'The server failed to fulfill an apparently valid request.'
-    }
-  },
-  ja: {
-    title: 'HTTP ステータスレスポンス',
-    requested: '指定されたステータス',
-    reason: '理由',
-    language: '言語',
-    unknown: '未割り当てのステータスコード',
-    invalid: 'ステータスコードには 100 から 599 までの整数を指定してください。',
-    informational: '1xx は最終応答ではなく中間応答です。このエンドポイントは実行環境が対応する場合に中間応答を送り、その後、必須の最終応答として 200 を返します。',
-    classes: {
-      1: 'リクエストを受信し、処理を続けています。',
-      2: 'リクエストを正常に受信し、理解して受理しました。',
-      3: 'リクエストを完了するには追加の操作が必要です。',
-      4: 'クライアント側の条件により、リクエストを処理できませんでした。',
-      5: 'サーバーは妥当なリクエストの処理に失敗しました。'
-    }
-  }
+const DESCRIPTION_INDEX = { en: 1, ja: 2, de: 3, es: 4, fr: 5, ko: 6, 'pt-BR': 7, 'zh-CN': 8 };
+
+const LANGUAGE_ALIASES = {
+  en: 'en', ja: 'ja', de: 'de', es: 'es', fr: 'fr', ko: 'ko',
+  pt: 'pt-BR', 'pt-br': 'pt-BR', zh: 'zh-CN', 'zh-cn': 'zh-CN', 'zh-hans': 'zh-CN'
+};
+
+const INVALID_DESCRIPTIONS = {
+  en: 'The status code must be an integer from 100 through 599.',
+  ja: 'ステータスコードには 100 から 599 までの整数を指定してください。',
+  de: 'Der Statuscode muss eine ganze Zahl zwischen 100 und 599 sein.',
+  es: 'El código de estado debe ser un número entero entre 100 y 599.',
+  fr: 'Le code d’état doit être un entier compris entre 100 et 599.',
+  ko: '상태 코드는 100에서 599 사이의 정수여야 합니다.',
+  'pt-BR': 'O código de status deve ser um número inteiro entre 100 e 599.',
+  'zh-CN': '状态码必须是 100 到 599 之间的整数。'
+};
+
+const UNASSIGNED_DESCRIPTIONS = {
+  en: 'This status code is not assigned in the standard HTTP registry.',
+  ja: 'このステータスコードは標準の HTTP レジストリに割り当てられていません。',
+  de: 'Dieser Statuscode ist im standardmäßigen HTTP-Register nicht zugewiesen.',
+  es: 'Este código de estado no está asignado en el registro HTTP estándar.',
+  fr: 'Ce code d’état n’est pas attribué dans le registre HTTP standard.',
+  ko: '이 상태 코드는 표준 HTTP 레지스트리에 할당되어 있지 않습니다.',
+  'pt-BR': 'Este código de status não está atribuído no registro HTTP padrão.',
+  'zh-CN': '此状态码未在标准 HTTP 注册表中分配。'
+};
+
+const BACK_LABELS = {
+  en: 'Back to documentation', ja: 'トップページに戻る', de: 'Zurück zur Dokumentation',
+  es: 'Volver a la documentación', fr: 'Retour à la documentation', ko: '문서로 돌아가기',
+  'pt-BR': 'Voltar à documentação', 'zh-CN': '返回说明页'
 };
 
 function first(value) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function normalizeLanguage(value) {
+function findSupportedLanguage(value) {
   if (!value || typeof value !== 'string') return null;
-  return value.trim().toLowerCase().split('-')[0];
+  const normalized = value.trim().toLowerCase().replaceAll('_', '-');
+  return LANGUAGE_ALIASES[normalized] || LANGUAGE_ALIASES[normalized.split('-')[0]] || null;
 }
 
 function resolveLanguage(req) {
-  const requested = normalizeLanguage(first(req.query?.lang));
-  if (requested) {
-    return {
-      language: SUPPORTED_LANGUAGES.includes(requested) ? requested : 'en',
-      requestedLanguage: requested,
-      fallback: !SUPPORTED_LANGUAGES.includes(requested)
-    };
-  }
+  const requested = first(req.query?.lang);
+  if (requested) return { language: findSupportedLanguage(requested) || 'en' };
 
   const accepted = String(req.headers?.['accept-language'] || '')
     .split(',')
-    .map((part) => normalizeLanguage(part.split(';')[0]))
-    .find((lang) => SUPPORTED_LANGUAGES.includes(lang));
+    .map((part, index) => {
+      const [tag, ...parameters] = part.trim().split(';');
+      const quality = parameters.find((parameter) => parameter.trim().startsWith('q='));
+      return { language: findSupportedLanguage(tag), quality: quality ? Number(quality.split('=')[1]) : 1, index };
+    })
+    .filter((item) => item.language && Number.isFinite(item.quality) && item.quality > 0)
+    .sort((a, b) => b.quality - a.quality || a.index - b.index)[0];
 
-  return {
-    language: accepted || 'en',
-    requestedLanguage: null,
-    fallback: false
-  };
+  return { language: accepted?.language || 'en' };
 }
 
 function parseStatusCode(value) {
@@ -98,13 +138,21 @@ function parseStatusCode(value) {
   return code >= 100 && code <= 599 ? code : null;
 }
 
-function statusText(code, language) {
-  if (language === 'ja') return JA_STATUS_TEXT[code] || COPY.ja.unknown;
-  return STATUS_CODES[code] || COPY.en.unknown;
+function statusText(code) {
+  return STATUS[code]?.[0] || 'Unassigned';
 }
 
 function statusDescription(code, language) {
-  return COPY[language].classes[Math.floor(code / 100)];
+  const entry = STATUS[code];
+  return entry ? entry[DESCRIPTION_INDEX[language]] : UNASSIGNED_DESCRIPTIONS[language];
+}
+
+function invalidDescription(language) {
+  return INVALID_DESCRIPTIONS[language];
+}
+
+function backLabel(language) {
+  return BACK_LABELS[language];
 }
 
 function escapeHtml(value) {
@@ -117,9 +165,10 @@ function escapeHtml(value) {
 }
 
 module.exports = {
-  COPY,
   SUPPORTED_LANGUAGES,
+  backLabel,
   escapeHtml,
+  invalidDescription,
   parseStatusCode,
   resolveLanguage,
   statusDescription,
