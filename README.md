@@ -22,8 +22,11 @@ HEAD /json/{statuscode}?lang=xx
 - `200`〜`599` は指定したコードを最終応答として返します。
 - `204`、`205`、`304` と `HEAD` は本文を返しません。
 - `1xx` は中間応答であり、最終応答にはできません。実行環境が対応している場合は `100`、`102`、`103` を中間応答として送り、その後に説明を含む `200` を最終応答として返します。
-- `lang` は `en` と `ja` に対応しています。未対応の値は英語へフォールバックします。
+- HTML の見出しと JSON の `message` は常に英語の reason phrase です。
+- HTML の本文と JSON の `description` はコード固有の説明をローカライズして返します。
+- `lang` は `en`、`ja`、`de`、`es`、`fr`、`ko`、`pt-BR`、`zh-CN` に対応しています。未対応の値は通知せず英語へフォールバックします。
 - `lang` を省略した場合は `Accept-Language` を参照し、判定できなければ英語を使います。
+- 説明は [MDN の HTTP ステータスリファレンス](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status) を要約し、reason phrase は [IANA レジストリ](https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml) に合わせています。
 
 ## Local development
 
