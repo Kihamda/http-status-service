@@ -71,31 +71,90 @@ const STATUS = {
 
 const DESCRIPTION_INDEX = { en: 1, ja: 2, de: 3, es: 4, fr: 5, ko: 6, 'pt-BR': 7, 'zh-CN': 8 };
 
+const STATUS_CLASS_CONTEXT = {
+  en: {
+    1: 'This is an interim response; the server normally sends a final response after it.',
+    2: 'It belongs to the successful response class and indicates that the server accepted and handled the request.',
+    3: 'It belongs to the redirection class, so the client may need to follow another URI or use its cached representation.',
+    4: 'It belongs to the client error class; changing the request, credentials, or target resource may be necessary before retrying.',
+    5: 'It belongs to the server error class; the request may succeed later without changes if the server or an upstream service recovers.'
+  },
+  ja: {
+    1: 'これは暫定的な応答であり、通常はこの後にサーバーから最終応答が送信されます。',
+    2: '成功応答の分類に属し、サーバーがリクエストを受理して処理したことを示します。',
+    3: 'リダイレクト応答の分類に属するため、クライアントは別の URI を参照するか、キャッシュ済みの表現を利用する必要があります。',
+    4: 'クライアントエラーの分類に属し、再試行の前にリクエスト、認証情報、または対象リソースの見直しが必要な場合があります。',
+    5: 'サーバーエラーの分類に属し、サーバーまたは上流サービスが復旧すれば、リクエストを変更せずに後から成功する可能性があります。'
+  },
+  de: {
+    1: 'Dies ist eine vorläufige Antwort; normalerweise sendet der Server anschließend noch eine endgültige Antwort.',
+    2: 'Der Code gehört zur Klasse der erfolgreichen Antworten und zeigt an, dass der Server die Anfrage angenommen und verarbeitet hat.',
+    3: 'Der Code gehört zur Klasse der Weiterleitungen; der Client muss daher möglicherweise einem anderen URI folgen oder seine zwischengespeicherte Darstellung verwenden.',
+    4: 'Der Code gehört zur Klasse der Clientfehler; vor einem erneuten Versuch müssen möglicherweise Anfrage, Anmeldedaten oder Zielressource korrigiert werden.',
+    5: 'Der Code gehört zur Klasse der Serverfehler; nach der Wiederherstellung des Servers oder eines vorgelagerten Dienstes kann dieselbe Anfrage später erfolgreich sein.'
+  },
+  es: {
+    1: 'Esta es una respuesta provisional; normalmente el servidor envía después una respuesta final.',
+    2: 'Pertenece a la clase de respuestas satisfactorias e indica que el servidor aceptó y procesó la solicitud.',
+    3: 'Pertenece a la clase de redirecciones, por lo que el cliente puede necesitar seguir otro URI o utilizar su representación almacenada en caché.',
+    4: 'Pertenece a la clase de errores del cliente; antes de reintentar puede ser necesario corregir la solicitud, las credenciales o el recurso de destino.',
+    5: 'Pertenece a la clase de errores del servidor; la misma solicitud podría funcionar más tarde si el servidor o un servicio ascendente se recupera.'
+  },
+  fr: {
+    1: 'Il s’agit d’une réponse provisoire ; le serveur envoie normalement une réponse finale par la suite.',
+    2: 'Ce code appartient à la classe des réponses réussies et indique que le serveur a accepté et traité la requête.',
+    3: 'Ce code appartient à la classe des redirections ; le client peut donc devoir suivre un autre URI ou utiliser sa représentation mise en cache.',
+    4: 'Ce code appartient à la classe des erreurs client ; il peut être nécessaire de corriger la requête, les identifiants ou la ressource cible avant de réessayer.',
+    5: 'Ce code appartient à la classe des erreurs serveur ; la même requête peut réussir plus tard si le serveur ou un service en amont se rétablit.'
+  },
+  ko: {
+    1: '이는 임시 응답이며, 일반적으로 서버는 그 뒤에 최종 응답을 보냅니다.',
+    2: '성공 응답 범주에 속하며 서버가 요청을 수락하고 처리했음을 나타냅니다.',
+    3: '리디렉션 응답 범주에 속하므로 클라이언트가 다른 URI를 따르거나 캐시된 표현을 사용해야 할 수 있습니다.',
+    4: '클라이언트 오류 범주에 속하며 다시 시도하기 전에 요청, 인증 정보 또는 대상 리소스를 수정해야 할 수 있습니다.',
+    5: '서버 오류 범주에 속하며 서버나 업스트림 서비스가 복구되면 요청을 변경하지 않아도 나중에 성공할 수 있습니다.'
+  },
+  'pt-BR': {
+    1: 'Esta é uma resposta provisória; normalmente o servidor envia uma resposta final depois dela.',
+    2: 'O código pertence à classe de respostas bem-sucedidas e indica que o servidor aceitou e processou a solicitação.',
+    3: 'O código pertence à classe de redirecionamentos, portanto o cliente pode precisar seguir outro URI ou usar sua representação em cache.',
+    4: 'O código pertence à classe de erros do cliente; talvez seja necessário corrigir a solicitação, as credenciais ou o recurso de destino antes de tentar novamente.',
+    5: 'O código pertence à classe de erros do servidor; a mesma solicitação pode funcionar mais tarde se o servidor ou um serviço upstream se recuperar.'
+  },
+  'zh-CN': {
+    1: '这是临时响应；服务器通常会在此之后发送最终响应。',
+    2: '该状态码属于成功响应类别，表示服务器已接受并处理该请求。',
+    3: '该状态码属于重定向响应类别，因此客户端可能需要访问其他 URI 或使用已缓存的表示。',
+    4: '该状态码属于客户端错误类别；重试前可能需要修改请求、凭据或目标资源。',
+    5: '该状态码属于服务器错误类别；如果服务器或上游服务恢复，同一请求稍后可能无需修改即可成功。'
+  }
+};
+
 const LANGUAGE_ALIASES = {
   en: 'en', ja: 'ja', de: 'de', es: 'es', fr: 'fr', ko: 'ko',
   pt: 'pt-BR', 'pt-br': 'pt-BR', zh: 'zh-CN', 'zh-cn': 'zh-CN', 'zh-hans': 'zh-CN'
 };
 
 const INVALID_DESCRIPTIONS = {
-  en: 'The status code must be an integer from 100 through 599.',
-  ja: 'ステータスコードには 100 から 599 までの整数を指定してください。',
-  de: 'Der Statuscode muss eine ganze Zahl zwischen 100 und 599 sein.',
-  es: 'El código de estado debe ser un número entero entre 100 y 599.',
-  fr: 'Le code d’état doit être un entier compris entre 100 et 599.',
-  ko: '상태 코드는 100에서 599 사이의 정수여야 합니다.',
-  'pt-BR': 'O código de status deve ser um número inteiro entre 100 e 599.',
-  'zh-CN': '状态码必须是 100 到 599 之间的整数。'
+  en: 'The status code must be a three-digit integer from 100 through 599. Use a URL such as /json/404 or /html/503 and do not include spaces, decimals, or signs.',
+  ja: 'ステータスコードには 100 から 599 までの3桁の整数を指定してください。/json/404 や /html/503 のような URL を使用し、空白、小数、符号は含めないでください。',
+  de: 'Der Statuscode muss eine dreistellige ganze Zahl zwischen 100 und 599 sein. Verwenden Sie eine URL wie /json/404 oder /html/503 und geben Sie keine Leerzeichen, Dezimalstellen oder Vorzeichen an.',
+  es: 'El código de estado debe ser un número entero de tres dígitos entre 100 y 599. Utilice una URL como /json/404 o /html/503 y no incluya espacios, decimales ni signos.',
+  fr: 'Le code d’état doit être un entier à trois chiffres compris entre 100 et 599. Utilisez une URL telle que /json/404 ou /html/503, sans espaces, décimales ni signes.',
+  ko: '상태 코드는 100에서 599 사이의 세 자리 정수여야 합니다. /json/404 또는 /html/503과 같은 URL을 사용하고 공백, 소수점 또는 부호를 포함하지 마세요.',
+  'pt-BR': 'O código de status deve ser um número inteiro de três dígitos entre 100 e 599. Use uma URL como /json/404 ou /html/503 e não inclua espaços, casas decimais ou sinais.',
+  'zh-CN': '状态码必须是 100 到 599 之间的三位整数。请使用 /json/404 或 /html/503 之类的 URL，不要包含空格、小数或正负号。'
 };
 
 const UNASSIGNED_DESCRIPTIONS = {
-  en: 'This status code is not assigned in the standard HTTP registry.',
-  ja: 'このステータスコードは標準の HTTP レジストリに割り当てられていません。',
-  de: 'Dieser Statuscode ist im standardmäßigen HTTP-Register nicht zugewiesen.',
-  es: 'Este código de estado no está asignado en el registro HTTP estándar.',
-  fr: 'Ce code d’état n’est pas attribué dans le registre HTTP standard.',
-  ko: '이 상태 코드는 표준 HTTP 레지스트리에 할당되어 있지 않습니다.',
-  'pt-BR': 'Este código de status não está atribuído no registro HTTP padrão.',
-  'zh-CN': '此状态码未在标准 HTTP 注册表中分配。'
+  en: 'This status code is not assigned in the standard HTTP registry, so it has no standardized reason phrase or semantics. The service still returns the requested numeric status for testing.',
+  ja: 'このステータスコードは標準の HTTP レジストリに割り当てられていないため、標準化された理由句や意味はありません。このサービスでは、テスト用途のため指定された数値のステータスをそのまま返します。',
+  de: 'Dieser Statuscode ist im standardmäßigen HTTP-Register nicht zugewiesen und besitzt daher weder eine standardisierte Statusmeldung noch eine festgelegte Bedeutung. Zu Testzwecken gibt der Dienst den angeforderten numerischen Status dennoch zurück.',
+  es: 'Este código de estado no está asignado en el registro HTTP estándar, por lo que no tiene una frase de motivo ni una semántica estandarizadas. El servicio devuelve de todos modos el estado numérico solicitado para realizar pruebas.',
+  fr: 'Ce code d’état n’est pas attribué dans le registre HTTP standard ; il ne possède donc ni libellé ni sémantique normalisés. Le service renvoie néanmoins le statut numérique demandé à des fins de test.',
+  ko: '이 상태 코드는 표준 HTTP 레지스트리에 할당되어 있지 않으므로 표준화된 이유 문구나 의미가 없습니다. 이 서비스는 테스트를 위해 요청된 숫자 상태를 그대로 반환합니다.',
+  'pt-BR': 'Este código de status não está atribuído no registro HTTP padrão, portanto não possui frase de motivo nem semântica padronizadas. Mesmo assim, o serviço retorna o status numérico solicitado para fins de teste.',
+  'zh-CN': '此状态码未在标准 HTTP 注册表中分配，因此没有标准化的原因短语或语义。本服务仍会返回所请求的数字状态，以便进行测试。'
 };
 
 const BACK_LABELS = {
@@ -144,7 +203,9 @@ function statusText(code) {
 
 function statusDescription(code, language) {
   const entry = STATUS[code];
-  return entry ? entry[DESCRIPTION_INDEX[language]] : UNASSIGNED_DESCRIPTIONS[language];
+  if (!entry) return UNASSIGNED_DESCRIPTIONS[language];
+  const statusClass = Math.floor(code / 100);
+  return `${entry[DESCRIPTION_INDEX[language]]} ${STATUS_CLASS_CONTEXT[language][statusClass]}`;
 }
 
 function invalidDescription(language) {
