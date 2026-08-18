@@ -28,7 +28,7 @@ test('returns the requested final status as JSON', () => {
   assert.deepEqual(JSON.parse(result.body), {
     status: 404,
     message: 'Not Found',
-    description: 'サーバーは要求されたリソースを見つけられません。'
+    description: 'サーバーは要求されたリソースを見つけられません。 クライアントエラーの分類に属し、再試行の前にリクエスト、認証情報、または対象リソースの見直しが必要な場合があります。'
   });
 });
 
@@ -63,7 +63,7 @@ test('returns a localized description while keeping the message in English', () 
   assert.deepEqual(JSON.parse(result.body), {
     status: 418,
     message: "I'm a Teapot",
-    description: 'Le serveur refuse de préparer du café parce que c’est une théière.'
+    description: 'Le serveur refuse de préparer du café parce que c’est une théière. Ce code appartient à la classe des erreurs client ; il peut être nécessaire de corriger la requête, les identifiants ou la ressource cible avant de réessayer.'
   });
 });
 
@@ -71,13 +71,25 @@ test('falls back silently to English for unsupported languages', () => {
   const result = request(404, 'json', { query: { lang: 'xx' } });
   assert.equal(result.headers['content-language'], 'en');
   assert.equal(result.headers['x-language-fallback'], undefined);
-  assert.equal(JSON.parse(result.body).description, 'The server cannot find the requested resource.');
+  assert.equal(JSON.parse(result.body).description, 'The server cannot find the requested resource. It belongs to the client error class; changing the request, credentials, or target resource may be necessary before retrying.');
 });
 
 test('selects a supported Accept-Language value by quality', () => {
   const result = request(404, 'json', { headers: { 'accept-language': 'fr;q=0.5, zh-CN;q=0.9' } });
   assert.equal(result.headers['content-language'], 'zh-CN');
-  assert.equal(JSON.parse(result.body).description, '服务器找不到请求的资源。');
+  assert.equal(JSON.parse(result.body).description, '服务器找不到请求的资源。 该状态码属于客户端错误类别；重试前可能需要修改请求、凭据或目标资源。');
+});
+
+test('adds detailed status-class context in every supported language', () => {
+  const languages = ['en', 'ja', 'de', 'es', 'fr', 'ko', 'pt-BR', 'zh-CN'];
+  const representativeCodes = [103, 200, 307, 404, 503];
+
+  for (const language of languages) {
+    for (const code of representativeCodes) {
+      const description = JSON.parse(request(code, 'json', { query: { lang: language } }).body).description;
+      assert.ok(description.length >= 40, `${language} ${code} should contain a detailed description`);
+    }
+  }
 });
 
 test('rejects values outside the RFC status range', () => {
